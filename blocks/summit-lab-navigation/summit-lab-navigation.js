@@ -53,7 +53,7 @@ export default async function decorate($block) {
   const $button = document.createElement('a');
   $button.href = '#';
   $button.className = 'button';
-  $button.textContent = 'Find Your Seat';
+  $button.textContent = 'Access My Lab Environment';
   $button.addEventListener('click', lookupSeat);
 
   // Replace block contents with button

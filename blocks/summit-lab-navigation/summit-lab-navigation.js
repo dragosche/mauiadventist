@@ -22,7 +22,7 @@ function lookupSeat(e) {
       // Open in new tab
       window.open(baseUrl, '_blank');
     } else {
-      alert('Please enter a valid seat number (1-200)');
+      alert('Please enter a valid seat number (0-200)');
     }
   }
 }

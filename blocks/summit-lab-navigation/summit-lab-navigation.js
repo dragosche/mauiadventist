@@ -4,13 +4,27 @@
  */
 function lookupSeat(e) {
   e.preventDefault();
-  // Open popup window centered on screen
-  const width = 800;
-  const height = 600;
-  const left = (window.screen.width - width) / 2;
-  const top = (window.screen.height - height) / 2;
-  window.open('https://aem.live', 'SeatLookup', 
-    `width=${width},height=${height},left=${left},top=${top}`);
+  
+  // Prompt for seat number
+  let seatNumber = prompt('Please enter your seat number:');
+  
+  // Validate and format seat number
+  if (seatNumber) {
+    // Remove any non-numeric characters
+    seatNumber = seatNumber.replace(/\D/g, '');
+    
+    // Pad with leading zeros if less than 3 digits
+    seatNumber = seatNumber.padStart(3, '0');
+    
+    // Validate it's exactly 3 digits
+    if (seatNumber.length === 3) {
+      const baseUrl = `https://aem.live/${seatNumber}`;
+      // Open in new tab
+      window.open(baseUrl, '_blank');
+    } else {
+      alert('Please enter a valid seat number (1-200)');
+    }
+  }
 }
 
 /**

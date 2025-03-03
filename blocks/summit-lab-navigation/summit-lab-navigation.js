@@ -13,14 +13,23 @@ async function lookupSeat(e) {
       return; // User cancelled
     }
 
-    // Remove any non-numeric characters and pad with leading zeros
-    seatNumber = seatNumber.replace(/\D/g, '').padStart(3, '0');
-    
-    // Validate it's exactly 3 digits
-    if (seatNumber.length !== 3) {
-      alert('Please enter a valid seat number (0-200)');
+    // Check if input contains any non-numeric characters
+    if (/[^\d]/.test(seatNumber)) {
+      alert('Please enter only numbers (0-200)');
       return;
     }
+
+    // Remove any leading zeros and convert to number
+    const numericSeat = parseInt(seatNumber, 10);
+    
+    // Validate the number is in valid range
+    if (numericSeat < 0 || numericSeat > 200) {
+      alert('Please enter a valid seat number between 0 and 200');
+      return;
+    }
+
+    // Pad with leading zeros to create 3-digit format
+    seatNumber = numericSeat.toString().padStart(3, '0');
 
     // Fetch the sites data from the JSON endpoint
     const response = await fetch('https://main--wknd-summit2025--adobe.aem.live/lab-337/lab-337-sites.json');
@@ -34,7 +43,7 @@ async function lookupSeat(e) {
     });
 
     if (!siteData) {
-      alert(`No lab environment found for seat number ${seatNumber}`);
+      alert(`No lab environment found for seat number ${numericSeat}`);
       return;
     }
 

@@ -10,8 +10,9 @@ async function lookupSeat(e) {
     const response = await fetch('https://main--wknd-summit2025--adobe.aem.live/lab-337/lab-337-sites.json');
     const data = await response.json();
     
-    // Get the base URL pattern from the first item
+    // Get the base URL pattern and id from the first item
     const baseURLPattern = data.data[0].baseURL;
+    const siteId = data.data[0].id;
     
     // Prompt for seat number
     let seatNumber = prompt('Please enter your seat number:');
@@ -28,8 +29,12 @@ async function lookupSeat(e) {
       if (seatNumber.length === 3) {
         // Replace '000' in the baseURL with the actual seat number
         const fullUrl = baseURLPattern.replace('000', seatNumber);
-        // Open in new tab
+        // Construct the Experience Cloud URL
+        const experienceCloudUrl = `https://experience.adobe.com/?organizationId=d488fc90-d009-412c-82a1-70b338b1869c/#/@summit2025l337/project-success-studio/sites/${siteId}/home`;
+        
+        // Open both URLs in new tabs
         window.open(fullUrl, '_blank');
+        window.open(experienceCloudUrl, '_blank');
       } else {
         alert('Please enter a valid seat number (0-200)');
       }

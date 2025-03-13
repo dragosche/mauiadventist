@@ -26,6 +26,12 @@ git subtree pull --squash --prefix plugins/experimentation git@github.com:adobe/
 
 If you prefer using `https` links you'd replace `git@github.com:adobe/aem-experimentation.git` in the above commands by `https://github.com/adobe/aem-experimentation.git`.
 
+If the `subtree pull` command is failing with an error like:
+```
+fatal: can't squash-merge: 'plugins/experimentation' was never added
+```
+you can just delete the folder and re-add the plugin via the `git subtree add` command above.
+
 ## Project instrumentation
 
 ### On top of a regular boilerplate project

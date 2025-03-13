@@ -27,15 +27,9 @@
     },
     {
       "id": "aem-experimentation",
-      "titleI18n": {
-        "en": "Experimentation"
-      },
-      "environments": [
-        "preview"
-      ],
-      "includePaths": [
-        "**.docx**"
-      ],
+      "titleI18n": { "en": "Experimentation" },
+      "environments": [ "preview" ],
+      "includePaths": [ "**.docx**" ],
       "event": "aem-experimentation-sidekick"
     }
   ]

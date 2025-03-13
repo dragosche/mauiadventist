@@ -10,9 +10,42 @@
  * governing permissions and limitations under the License.
  */
 
-function createPreviewOverlay(cls) {
-  const overlay = document.createElement('div');
-  overlay.className = cls;
+const DOMAIN_KEY_NAME = 'aem-domainkey';
+
+class AemExperimentationBar extends HTMLElement {
+  connectedCallback() {
+    // Create a shadow root
+    const shadow = this.attachShadow({ mode: 'open' });
+
+    const cssPath = new URL(new Error().stack.split('\n')[2].match(/[a-z]+?:\/\/.*?\/[^:]+/)[0]).pathname.replace('preview.js', 'preview.css');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = cssPath;
+    link.onload = () => {
+      shadow.querySelector('.hlx-preview-overlay').removeAttribute('hidden');
+    };
+    shadow.append(link);
+
+    const el = document.createElement('div');
+    el.className = 'hlx-preview-overlay';
+    el.setAttribute('hidden', true);
+    shadow.append(el);
+  }
+}
+customElements.define('aem-experimentation-bar', AemExperimentationBar);
+
+function createPreviewOverlay() {
+  const overlay = document.createElement('aem-experimentation-bar');
+  return overlay;
+}
+
+function getOverlay() {
+  let overlay = document.querySelector('aem-experimentation-bar')?.shadowRoot.children[1];
+  if (!overlay) {
+    const el = createPreviewOverlay();
+    document.body.append(el);
+    [, overlay] = el.shadowRoot.children;
+  }
   return overlay;
 }
 
@@ -27,7 +60,9 @@ function createButton(label) {
 
 function createPopupItem(item) {
   const actions = typeof item === 'object'
-    ? item.actions.map((action) => `<div class="hlx-button"><a href="${action.href}">${action.label}</a></div>`)
+    ? item.actions.map((action) => (action.href
+      ? `<div class="hlx-button"><a href="${action.href}">${action.label}</a></div>`
+      : `<div class="hlx-button"><a href="#">${action.label}</a></div>`))
     : [];
   const div = document.createElement('div');
   div.className = `hlx-popup-item${item.isSelected ? ' is-selected' : ''}`;
@@ -35,12 +70,20 @@ function createPopupItem(item) {
     <h5 class="hlx-popup-item-label">${typeof item === 'object' ? item.label : item}</h5>
     ${item.description ? `<div class="hlx-popup-item-description">${item.description}</div>` : ''}
     ${actions.length ? `<div class="hlx-popup-item-actions">${actions}</div>` : ''}`;
+  const buttons = [...div.querySelectorAll('.hlx-button a')];
+  item.actions?.forEach((action, index) => {
+    if (action.onclick) {
+      buttons[index].addEventListener('click', action.onclick);
+    }
+  });
   return div;
 }
 
 function createPopupDialog(header, items = []) {
   const actions = typeof header === 'object'
-    ? (header.actions || []).map((action) => `<div class="hlx-button"><a href="${action.href}">${action.label}</a></div>`)
+    ? (header.actions || []).map((action) => (action.href
+      ? `<div class="hlx-button"><a href="${action.href}">${action.label}</a></div>`
+      : `<div class="hlx-button"><a href="#">${action.label}</a></div>`))
     : [];
   const popup = document.createElement('div');
   popup.className = 'hlx-popup hlx-hidden';
@@ -54,6 +97,12 @@ function createPopupDialog(header, items = []) {
   const list = popup.querySelector('.hlx-popup-items');
   items.forEach((item) => {
     list.append(createPopupItem(item));
+  });
+  const buttons = [...popup.querySelectorAll('.hlx-popup-header-actions .hlx-button a')];
+  header.actions?.forEach((action, index) => {
+    if (action.onclick) {
+      buttons[index].addEventListener('click', action.onclick);
+    }
   });
   return popup;
 }
@@ -85,16 +134,7 @@ function createToggleButton(label) {
   return button;
 }
 
-function getOverlay() {
-  let overlay = document.querySelector('.hlx-preview-overlay');
-  if (!overlay) {
-    overlay = createPreviewOverlay('hlx-preview-overlay');
-    document.body.append(overlay);
-  }
-  return overlay;
-}
-
-const percentformat = new Intl.NumberFormat('en-US', { style: 'percent', maximumSignificantDigits: 2 });
+const percentformat = new Intl.NumberFormat('en-US', { style: 'percent', maximumSignificantDigits: 3 });
 const countformat = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 2 });
 const significanceformat = {
   format: (value) => {
@@ -144,13 +184,28 @@ function createVariant(experiment, variantName, config, options) {
 }
 
 async function fetchRumData(experiment, options) {
-  // the query is a bit slow, so I'm only fetching the results when the popup is opened
-  const resultsURL = new URL('https://helix-pages.anywhere.run/helix-services/run-query@v2/rum-experiments');
-  resultsURL.searchParams.set(options.experimentsQueryParameter, experiment);
-  if (window.hlx.sidekickConfig && window.hlx.sidekickConfig.host) {
-    // restrict results to the production host, this also reduces query cost
-    resultsURL.searchParams.set('domain', window.hlx.sidekickConfig.host);
+  if (!options.domainKey) {
+    // eslint-disable-next-line no-console
+    console.warn('Cannot show RUM data. No `domainKey` configured.');
+    return null;
   }
+  if (!options.prodHost && (typeof options.isProd !== 'function' || !options.isProd())) {
+    // eslint-disable-next-line no-console
+    console.warn('Cannot show RUM data. No `prodHost` configured or custom `isProd` method provided.');
+    return null;
+  }
+
+  // the query is a bit slow, so I'm only fetching the results when the popup is opened
+  const resultsURL = new URL('https://helix-pages.anywhere.run/helix-services/run-query@v3/rum-experiments');
+  // restrict results to the production host, this also reduces query cost
+  if (typeof options.isProd === 'function' && options.isProd()) {
+    resultsURL.searchParams.set('url', window.location.host);
+  } else if (options.prodHost) {
+    resultsURL.searchParams.set('url', options.prodHost);
+  }
+  resultsURL.searchParams.set('domainkey', options.domainKey);
+  resultsURL.searchParams.set('experiment', experiment);
+  resultsURL.searchParams.set('conversioncheckpoint', options.conversionName);
 
   const response = await fetch(resultsURL.href);
   if (!response.ok) {
@@ -158,7 +213,8 @@ async function fetchRumData(experiment, options) {
   }
 
   const { results } = await response.json();
-  if (!results.length) {
+  const { data } = results;
+  if (!data.length) {
     return null;
   }
 
@@ -168,7 +224,7 @@ async function fetchRumData(experiment, options) {
     return o;
   }, {});
 
-  const variantsAsNums = results.map(numberify);
+  const variantsAsNums = data.map(numberify);
   const totals = Object.entries(
     variantsAsNums.reduce((o, v) => {
       Object.entries(v).forEach(([k, val]) => {
@@ -185,7 +241,7 @@ async function fetchRumData(experiment, options) {
     const vkey = k.replace(/^(variant|control)_/, 'variant_');
     const ckey = k.replace(/^(variant|control)_/, 'control_');
     const tkey = k.replace(/^(variant|control)_/, 'total_');
-    if (o[ckey] && o[vkey]) {
+    if (!Number.isNaN(o[ckey]) && !Number.isNaN(o[vkey])) {
       o[tkey] = o[ckey] + o[vkey];
     }
     return o;
@@ -230,7 +286,7 @@ async function fetchRumData(experiment, options) {
 
 function populatePerformanceMetrics(div, config, {
   richVariants, totals, variantsAsNums, winner,
-}) {
+}, conversionName = 'click') {
   // add summary
   const summary = div.querySelector('.hlx-info');
   summary.innerHTML = `Showing results for ${bigcountformat.format(totals.total_experimentations)} visits and ${bigcountformat.format(totals.total_conversions)} conversions: `;
@@ -246,10 +302,10 @@ function populatePerformanceMetrics(div, config, {
 
   // add traffic allocation to control and each variant
   config.variantNames.forEach((variantName, index) => {
-    const variantDiv = document.querySelectorAll('.hlx-popup-item')[index];
+    const variantDiv = document.querySelector('aem-experimentation-bar')?.shadowRoot.querySelectorAll('.hlx-popup-item')[index];
     const percentage = variantDiv.querySelector('.percentage');
     percentage.innerHTML = `
-      <span title="${countformat.format(richVariants[variantName].variant_conversion_events)} real events">${bigcountformat.format(richVariants[variantName].variant_conversions)} clicks</span> /
+      <span title="${countformat.format(richVariants[variantName].variant_conversion_events)} real events">${bigcountformat.format(richVariants[variantName].variant_conversions)} ${conversionName} events</span> /
       <span title="${countformat.format(richVariants[variantName].variant_experimentation_events)} real events">${bigcountformat.format(richVariants[variantName].variant_experimentations)} visits</span>
       <span>(${percentformat.format(richVariants[variantName].variant_experimentations / totals.total_experimentations)} split)</span>
     `;
@@ -257,11 +313,11 @@ function populatePerformanceMetrics(div, config, {
 
   // add click rate and significance to each variant
   variantsAsNums.forEach((result) => {
-    const variant = document.querySelectorAll('.hlx-popup-item')[config.variantNames.indexOf(result.variant)];
+    const variant = document.querySelector('aem-experimentation-bar')?.shadowRoot.querySelectorAll('.hlx-popup-item')[config.variantNames.indexOf(result.variant)];
     if (variant) {
       const performance = variant.querySelector('.performance');
       performance.innerHTML = `
-        <span>click rate: ${percentformat.format(result.variant_conversion_rate)}</span>
+        <span>${conversionName} conversion rate: ${percentformat.format(result.variant_conversion_rate)}</span>
         <span>vs. ${percentformat.format(result.control_conversion_rate)}</span>
         <span title="p value: ${result.p_value}" class="significance ${significanceformat.format(result.p_value).replace(/ /, '-')}">${significanceformat.format(result.p_value)}</span>
       `;
@@ -282,6 +338,10 @@ async function decorateExperimentPill(overlay, options, context) {
   // eslint-disable-next-line no-console
   console.log('preview experiment', experiment);
 
+  const domainKey = window.localStorage.getItem(DOMAIN_KEY_NAME);
+  const conversionName = config.conversionName
+    || context.getMetadata('conversion-name')
+    || 'click';
   const pill = createPopupButton(
     `Experiment: ${config.id}`,
     {
@@ -296,7 +356,33 @@ async function decorateExperimentPill(overlay, options, context) {
           ${config.variants[config.variantNames[0]].blocks.join(',')}
         </div>
         <div class="hlx-info">How is it going?</div>`,
-      actions: config.manifest ? [{ label: 'Manifest', href: config.manifest }] : [],
+      actions: [
+        ...config.manifest ? [{ label: 'Manifest', href: config.manifest }] : [],
+        {
+          label: '<span style="font-size:2em;line-height:1em">⚙</span>',
+          onclick: async () => {
+            // eslint-disable-next-line no-alert
+            const key = window.prompt(
+              'Please enter your domain key:',
+              window.localStorage.getItem(DOMAIN_KEY_NAME) || '',
+            );
+            if (key && key.match(/[a-f0-9-]+/)) {
+              window.localStorage.setItem(DOMAIN_KEY_NAME, key);
+              const performanceMetrics = await fetchRumData(experiment, {
+                ...options,
+                conversionName,
+                domainKey: key,
+              });
+              if (performanceMetrics === null) {
+                return;
+              }
+              populatePerformanceMetrics(pill, config, performanceMetrics, conversionName);
+            } else if (key === '') {
+              window.localStorage.removeItem(DOMAIN_KEY_NAME);
+            }
+          },
+        },
+      ],
     },
     config.variantNames.map((vname) => createVariant(experiment, vname, config, options)),
   );
@@ -305,11 +391,13 @@ async function decorateExperimentPill(overlay, options, context) {
   }
   overlay.append(pill);
 
-  const performanceMetrics = await fetchRumData(experiment, options);
+  const performanceMetrics = await fetchRumData(experiment, {
+    ...options, domainKey, conversionName,
+  });
   if (performanceMetrics === null) {
     return;
   }
-  populatePerformanceMetrics(pill, config, performanceMetrics);
+  populatePerformanceMetrics(pill, config, performanceMetrics, conversionName);
 }
 
 function createCampaign(campaign, isSelected, options) {
@@ -426,7 +514,6 @@ async function decorateAudiencesPill(overlay, options, context) {
  */
 export default async function decoratePreviewMode(document, options, context) {
   try {
-    context.loadCSS(`${options.basePath || window.hlx.codeBasePath}/plugins/experimentation/src/preview.css`);
     const overlay = getOverlay(options);
     await decorateAudiencesPill(overlay, options, context);
     await decorateCampaignPill(overlay, options, context);

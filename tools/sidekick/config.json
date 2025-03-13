@@ -27,6 +27,7 @@
     },
     {
       "id": "aem-experimentation",
+      "title": "Experimentation",
       "titleI18n": { "en": "Experimentation" },
       "environments": [ "preview" ],
       "includePaths": [ "**.docx**" ],

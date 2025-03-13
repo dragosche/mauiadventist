@@ -24,6 +24,19 @@
       "passConfig": true,
       "environments": [ "preview", "live", "edit" ],
       "includePaths": ["**.docx**"]
+    },
+    {
+      "id": "aem-experimentation",
+      "titleI18n": {
+        "en": "Experimentation"
+      },
+      "environments": [
+        "preview"
+      ],
+      "includePaths": [
+        "**.docx**"
+      ],
+      "event": "aem-experimentation-sidekick"
     }
   ]
 }

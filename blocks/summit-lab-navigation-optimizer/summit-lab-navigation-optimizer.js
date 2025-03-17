@@ -51,7 +51,6 @@ async function lookupSeat(e) {
     const experienceCloudUrl = `https://experience.adobe.com/?organizationId=d488fc90-d009-412c-82a1-70b338b1869c/#/@summit2025l337/project-success-studio/sites/${siteData.id}/home`;
     
     // Open both URLs in new tabs
-    window.open(siteData.baseURL, '_blank');
     window.open(experienceCloudUrl, '_blank');
 
   } catch (error) {
@@ -68,7 +67,7 @@ export default async function decorate($block) {
   const $button = document.createElement('a');
   $button.href = '#';
   $button.className = 'button';
-  $button.textContent = 'Access My Lab Environment';
+  $button.textContent = 'Access My AEM Sites Optimizer Dashboard';
   $button.addEventListener('click', lookupSeat);
 
   // Replace block contents with button

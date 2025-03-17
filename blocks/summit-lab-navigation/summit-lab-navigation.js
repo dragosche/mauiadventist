@@ -52,7 +52,6 @@ async function lookupSeat(e) {
     
     // Open both URLs in new tabs
     window.open(siteData.baseURL, '_blank');
-    window.open(experienceCloudUrl, '_blank');
 
   } catch (error) {
     console.error('Error fetching seat information:', error);
@@ -68,7 +67,7 @@ export default async function decorate($block) {
   const $button = document.createElement('a');
   $button.href = '#';
   $button.className = 'button';
-  $button.textContent = 'Access My Lab Environment';
+  $button.textContent = 'Access My AEM Demo Site';
   $button.addEventListener('click', lookupSeat);
 
   // Replace block contents with button

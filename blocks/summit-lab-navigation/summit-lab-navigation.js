@@ -52,6 +52,7 @@ async function lookupSeat(e) {
     
     // Open both URLs in new tabs
     window.open(siteData.baseURL, '_blank');
+    window.open(experienceCloudUrl, '_blank');
 
   } catch (error) {
     console.error('Error fetching seat information:', error);

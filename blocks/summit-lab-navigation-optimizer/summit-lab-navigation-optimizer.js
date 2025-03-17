@@ -51,7 +51,7 @@ async function lookupSeat(e) {
     const experienceCloudUrl = `https://experience.adobe.com/?organizationId=d488fc90-d009-412c-82a1-70b338b1869c/#/@summit2025l337/project-success-studio/sites/${siteData.id}/home`;
     
     // Open both URLs in new tabs
-    window.open(siteData.baseURL, '_blank');
+    window.open(experienceCloudUrl, '_blank');
 
   } catch (error) {
     console.error('Error fetching seat information:', error);

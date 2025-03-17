@@ -2,7 +2,7 @@
  * Opens a popup window to lookup seat information
  * @param {Event} e The click event
  */
-async function lookupSeat(e) {
+async function lookupSeatOptimizer(e) {
   e.preventDefault();
   
   try {
@@ -68,7 +68,7 @@ export default async function decorate($block) {
   $button.href = '#';
   $button.className = 'button';
   $button.textContent = 'Access My Lab Environment';
-  $button.addEventListener('click', lookupSeat);
+  $button.addEventListener('click', lookupSeatOptimizer);
 
   // Replace block contents with button
   $block.replaceChildren($button);

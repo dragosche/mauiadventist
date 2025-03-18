@@ -1,4 +1,4 @@
-.summit-lab-navigation {
+.summit-lab-navigation-optimizer {
     display: flex;
     width: 100%;
     margin-bottom: 1em;
@@ -6,7 +6,7 @@
     padding: 2em;
 }
 
-.summit-lab-navigation .button {
+.summit-lab-navigation-optimizer .button {
     padding: 1em 2em;
     background-color: #1473e6;
     color: white;
@@ -16,6 +16,6 @@
     transition: background-color 0.3s ease;
 }
 
-.summit-lab-navigation .button:hover {
+.summit-lab-navigation-optimizer .button:hover {
     background-color: #0d66d0;
 } 

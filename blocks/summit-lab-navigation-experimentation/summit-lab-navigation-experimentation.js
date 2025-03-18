@@ -69,7 +69,7 @@ export default async function decorate($block) {
   const $button = document.createElement('a');
   $button.href = '#';
   $button.className = 'button';
-  $button.textContent = 'Access My AEM Sites Optimizer Dashboard';
+  $button.textContent = 'Access My AEM Demo Site';
   $button.addEventListener('click', lookupSeat);
 
   // Replace block contents with button

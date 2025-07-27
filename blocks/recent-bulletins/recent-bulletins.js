@@ -1,14 +1,18 @@
 /**
  * Loads a fragment.
- * @param {string} path The path to the fragment
+ * @param {string} path The path to the fragment (relative path or full URL)
  * @returns {Document} The document
  */
 async function loadFragment(path) {
-  if (path && path.startsWith('/')) {
-    const resp = await fetch(path);
-    if (resp.ok) {
-      const parser = new DOMParser();
-      return parser.parseFromString(await resp.text(), 'text/html');
+  if (path && (path.startsWith('/') || path.startsWith('http://') || path.startsWith('https://'))) {
+    try {
+      const resp = await fetch(path);
+      if (resp.ok) {
+        const parser = new DOMParser();
+        return parser.parseFromString(await resp.text(), 'text/html');
+      }
+    } catch (error) {
+      console.error(`Failed to load fragment from ${path}:`, error);
     }
   }
   return null;

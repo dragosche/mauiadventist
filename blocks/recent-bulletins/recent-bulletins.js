@@ -67,19 +67,17 @@ function trimToWords(text, wordLimit = 20) {
 }
 
 /**
- * Creates a table row for a bulletin
+ * Creates an article element for a bulletin
  * @param {string} path The bulletin path
  * @param {string} title The bulletin title
  * @param {string} description The bulletin description
  * @param {HTMLElement} image The bulletin image element
- * @returns {HTMLTableRowElement} The table row element
+ * @returns {HTMLElement} The article element
  */
-function createBulletinRow(path, title, description, image) {
-  const row = document.createElement('tr');
+function createBulletinArticle(path, title, description, image) {
+  const article = document.createElement('article');
   
-  // Image cell
-  const imageCell = document.createElement('td');
-  imageCell.setAttribute('data-label', 'Image');
+  // Image section
   const imageDiv = document.createElement('div');
   imageDiv.classList.add('bulletin-image');
   if (image) {
@@ -91,11 +89,10 @@ function createBulletinRow(path, title, description, image) {
     placeholder.textContent = 'No Image';
     imageDiv.appendChild(placeholder);
   }
-  imageCell.appendChild(imageDiv);
   
-  // Content cell
-  const contentCell = document.createElement('td');
-  contentCell.setAttribute('data-label', 'Content');
+  // Content section
+  const contentDiv = document.createElement('div');
+  contentDiv.classList.add('bulletin-content');
   
   const titleElement = document.createElement('h3');
   titleElement.classList.add('bulletin-title');
@@ -112,14 +109,14 @@ function createBulletinRow(path, title, description, image) {
   link.textContent = 'Show More';
   linkDiv.appendChild(link);
   
-  contentCell.appendChild(titleElement);
-  contentCell.appendChild(descElement);
-  contentCell.appendChild(linkDiv);
+  contentDiv.appendChild(titleElement);
+  contentDiv.appendChild(descElement);
+  contentDiv.appendChild(linkDiv);
   
-  row.appendChild(imageCell);
-  row.appendChild(contentCell);
+  article.appendChild(imageDiv);
+  article.appendChild(contentDiv);
   
-  return row;
+  return article;
 }
 
 /**
@@ -145,23 +142,11 @@ export default async function decorate($block) {
     return;
   }
   
-  // Create table structure
-  const table = document.createElement('table');
-  const thead = document.createElement('thead');
-  const tbody = document.createElement('tbody');
+  // Create container for bulletins
+  const container = document.createElement('div');
+  container.classList.add('bulletins-container');
   
-  // Create table header
-  const headerRow = document.createElement('tr');
-  const imageHeader = document.createElement('th');
-  imageHeader.textContent = 'Image';
-  const contentHeader = document.createElement('th');
-  contentHeader.textContent = 'Bulletin';
-  
-  headerRow.appendChild(imageHeader);
-  headerRow.appendChild(contentHeader);
-  thead.appendChild(headerRow);
-  
-  // Load each bulletin and create table rows
+  // Load each bulletin and create article elements
   const bulletinPromises = bulletinPaths.map(async (path) => {
     const doc = await loadFragment(path);
     if (!doc) return null;
@@ -176,21 +161,17 @@ export default async function decorate($block) {
       image = doc.querySelector('body > main img');
     }
     
-    return createBulletinRow(path, title, description, image);
+    return createBulletinArticle(path, title, description, image);
   });
   
-  // Wait for all bulletins to load and add them to tbody
-  const bulletinRows = await Promise.all(bulletinPromises);
-  bulletinRows.forEach(row => {
-    if (row) {
-      tbody.appendChild(row);
+  // Wait for all bulletins to load and add them to container
+  const bulletinArticles = await Promise.all(bulletinPromises);
+  bulletinArticles.forEach(article => {
+    if (article) {
+      container.appendChild(article);
     }
   });
   
-  // Assemble table
-  table.appendChild(thead);
-  table.appendChild(tbody);
-  
-  // Replace block content with table
-  $block.replaceChildren(table);
+  // Replace block content with container
+  $block.replaceChildren(container);
 } 

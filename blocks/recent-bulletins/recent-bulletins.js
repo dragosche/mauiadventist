@@ -1,0 +1,169 @@
+/**
+ * Loads a fragment.
+ * @param {string} path The path to the fragment
+ * @returns {Document} The document
+ */
+async function loadFragment(path) {
+  if (path && path.startsWith('/')) {
+    const resp = await fetch(path);
+    if (resp.ok) {
+      const parser = new DOMParser();
+      return parser.parseFromString(await resp.text(), 'text/html');
+    }
+  }
+  return null;
+}
+
+/**
+ * Retrieves the content of metadata tags.
+ * @param {string} name The metadata name (or property)
+ * @param doc Document object to query for the metadata. Defaults to the window's document
+ * @returns {string} The metadata value(s)
+ */
+function getMetadata(name, doc = document) {
+  const attr = name && name.includes(':') ? 'property' : 'name';
+  const meta = [...doc.head.querySelectorAll(`meta[${attr}="${name}"]`)].map((m) => m.content).join(', ');
+  return meta || '';
+}
+
+/**
+ * Trims text to a specified number of words
+ * @param {string} text The text to trim
+ * @param {number} wordLimit The maximum number of words
+ * @returns {string} The trimmed text
+ */
+function trimToWords(text, wordLimit = 20) {
+  if (!text) return '';
+  const words = text.split(' ');
+  if (words.length <= wordLimit) return text;
+  return words.slice(0, wordLimit).join(' ') + '...';
+}
+
+/**
+ * Creates a table row for a bulletin
+ * @param {string} path The bulletin path
+ * @param {string} title The bulletin title
+ * @param {string} description The bulletin description
+ * @param {HTMLElement} image The bulletin image element
+ * @returns {HTMLTableRowElement} The table row element
+ */
+function createBulletinRow(path, title, description, image) {
+  const row = document.createElement('tr');
+  
+  // Image cell
+  const imageCell = document.createElement('td');
+  imageCell.setAttribute('data-label', 'Image');
+  const imageDiv = document.createElement('div');
+  imageDiv.classList.add('bulletin-image');
+  if (image) {
+    imageDiv.appendChild(image.cloneNode(true));
+  } else {
+    // Create placeholder if no image
+    const placeholder = document.createElement('div');
+    placeholder.classList.add('bulletin-image-placeholder');
+    placeholder.textContent = 'No Image';
+    imageDiv.appendChild(placeholder);
+  }
+  imageCell.appendChild(imageDiv);
+  
+  // Content cell
+  const contentCell = document.createElement('td');
+  contentCell.setAttribute('data-label', 'Content');
+  
+  const titleElement = document.createElement('h3');
+  titleElement.classList.add('bulletin-title');
+  titleElement.textContent = title || 'Untitled Bulletin';
+  
+  const descElement = document.createElement('p');
+  descElement.classList.add('bulletin-description');
+  descElement.textContent = trimToWords(description, 20);
+  
+  const linkDiv = document.createElement('div');
+  linkDiv.classList.add('bulletin-link');
+  const link = document.createElement('a');
+  link.href = path;
+  link.textContent = 'Show More';
+  linkDiv.appendChild(link);
+  
+  contentCell.appendChild(titleElement);
+  contentCell.appendChild(descElement);
+  contentCell.appendChild(linkDiv);
+  
+  row.appendChild(imageCell);
+  row.appendChild(contentCell);
+  
+  return row;
+}
+
+/**
+ * @param {HTMLElement} $block The recent-bulletins block element
+ */
+export default async function decorate($block) {
+  // Get all links from the block
+  const links = $block.querySelectorAll('a');
+  const bulletinPaths = Array.from(links).map(link => link.getAttribute('href')).filter(href => href);
+  
+  // If no links found, try to get paths from text content
+  if (bulletinPaths.length === 0) {
+    const textContent = $block.textContent.trim();
+    if (textContent) {
+      // Split by newlines and filter out empty lines
+      const paths = textContent.split('\n').map(line => line.trim()).filter(line => line && line.startsWith('/'));
+      bulletinPaths.push(...paths);
+    }
+  }
+  
+  if (bulletinPaths.length === 0) {
+    $block.innerHTML = '<p>No bulletins found.</p>';
+    return;
+  }
+  
+  // Create table structure
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const tbody = document.createElement('tbody');
+  
+  // Create table header
+  const headerRow = document.createElement('tr');
+  const imageHeader = document.createElement('th');
+  imageHeader.textContent = 'Image';
+  const contentHeader = document.createElement('th');
+  contentHeader.textContent = 'Bulletin';
+  
+  headerRow.appendChild(imageHeader);
+  headerRow.appendChild(contentHeader);
+  thead.appendChild(headerRow);
+  
+  // Load each bulletin and create table rows
+  const bulletinPromises = bulletinPaths.map(async (path) => {
+    const doc = await loadFragment(path);
+    if (!doc) return null;
+    
+    // Extract metadata
+    const title = getMetadata('og:title', doc) || doc.querySelector('title')?.textContent || '';
+    const description = getMetadata('og:description', doc) || getMetadata('description', doc) || '';
+    
+    // Find image - try hero image first, then any image in main content
+    let image = doc.querySelector('body > main picture');
+    if (!image) {
+      image = doc.querySelector('body > main img');
+    }
+    
+    return createBulletinRow(path, title, description, image);
+  });
+  
+  // Wait for all bulletins to load and add them to tbody
+  const bulletinRows = await Promise.all(bulletinPromises);
+  bulletinRows.forEach(row => {
+    if (row) {
+      tbody.appendChild(row);
+    }
+  });
+  
+  // Assemble table
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  
+  // Replace block content with table
+  $block.replaceChildren(table);
+} 

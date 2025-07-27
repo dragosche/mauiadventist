@@ -1,18 +1,41 @@
 /**
+ * Converts an absolute URL to a relative path
+ * @param {string} url The URL to convert
+ * @returns {string} The relative path
+ */
+function getRelativePath(url) {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.pathname + urlObj.search + urlObj.hash;
+    } catch (error) {
+      console.error(`Invalid URL: ${url}`, error);
+      return url;
+    }
+  }
+  return url;
+}
+
+/**
  * Loads a fragment.
  * @param {string} path The path to the fragment (relative path or full URL)
  * @returns {Document} The document
  */
 async function loadFragment(path) {
-  if (path && (path.startsWith('/') || path.startsWith('http://') || path.startsWith('https://'))) {
-    try {
-      const resp = await fetch(path);
-      if (resp.ok) {
-        const parser = new DOMParser();
-        return parser.parseFromString(await resp.text(), 'text/html');
+  if (path) {
+    // Convert absolute URL to relative path to avoid CORS issues
+    const relativePath = getRelativePath(path);
+    
+    if (relativePath.startsWith('/')) {
+      try {
+        const resp = await fetch(relativePath);
+        if (resp.ok) {
+          const parser = new DOMParser();
+          return parser.parseFromString(await resp.text(), 'text/html');
+        }
+      } catch (error) {
+        console.error(`Failed to load fragment from ${relativePath}:`, error);
       }
-    } catch (error) {
-      console.error(`Failed to load fragment from ${path}:`, error);
     }
   }
   return null;

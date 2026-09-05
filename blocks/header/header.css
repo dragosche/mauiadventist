@@ -136,6 +136,7 @@ header nav[aria-expanded='true'] .nav-sections {
 
 /* tools */
 header nav .nav-tools {
+  display: none;
   grid-area: tools;
   flex: 0 0 auto;
   height: 22px;

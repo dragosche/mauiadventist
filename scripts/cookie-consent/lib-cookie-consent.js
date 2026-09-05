@@ -22,6 +22,7 @@ const configureCookieConsent = () => {
     container: document.querySelector('footer'),
     consentSettingsElementId: REVOKE_CONSENT_ELEMENT_ID,
     layout: 'categories',
+    mobileForceFloat: false,
     cookie: {
       domain: window.location.hostname,
     },
